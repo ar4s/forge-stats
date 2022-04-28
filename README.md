@@ -9,6 +9,8 @@ The goal of this project is to save the statistics of your mod or modpack from C
 1. Run periodically `forge-stats` by `cron` or `systemd`.
 1. Create dasboard or use [template](./contrib/influx-board-template.json)
 
+![Dashboard example](./contrib/dashboard-screen.png)
+
 ## Configuration
 You can configure the app by passing argument to command line or by set `[$ENVIRONMENT_VARIABLE]`.
 ```
