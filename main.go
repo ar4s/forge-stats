@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -73,15 +74,21 @@ func main() {
 				Name:    "token",
 				EnvVars: []string{"FORGE_STATS_INFLUX_TOKEN"},
 			},
+			&cli.StringFlag{
+				Name:    "stat-name",
+				EnvVars: []string{"FORGE_STAT_NAME"},
+				Value:   "default",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			statusURL := c.String("status-url")
 			influxURL := c.String("influx-url")
 			influxOrg := c.String("influx-org")
+			statName := c.String("stat-name")
 			influxBucket := c.String("influx-bucket")
 			token := c.String("token")
 			modID := c.Int("mod-id")
-			// token := c.String("token")
+
 			targetURL := fmt.Sprintf("%s/%d", statusURL, modID)
 			stat, err := getStat(targetURL)
 			if err != nil {
@@ -89,19 +96,19 @@ func main() {
 			}
 
 			influxClient := influxdb2.NewClient(influxURL, token)
-			writeAPI := influxClient.WriteAPI(influxOrg, influxBucket)
+			writeAPI := influxClient.WriteAPIBlocking(influxOrg, influxBucket)
 			p := influxdb2.NewPoint("stat",
-				map[string]string{},
+				map[string]string{"name": statName},
 				map[string]interface{}{
 					"downloadCount":      stat.DownloadCount,
 					"popularityScore":    stat.PopularityScore,
 					"gamePopularityRank": stat.GamePopularityRank},
 				time.Now())
-			writeAPI.WritePoint(p)
-			writeAPI.Flush()
+			err = writeAPI.WritePoint(context.Background(), p)
+			if err != nil {
+				log.Fatal(err.Error())
+			}
 			defer influxClient.Close()
-
-			fmt.Print(stat.DownloadCount)
 			return nil
 		},
 	}
